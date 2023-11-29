@@ -182,23 +182,20 @@ resource "aws_s3_bucket" "lblogs" {
   force_destroy = true
 }
 
-resource "aws_s3_bucket" "terraform_state" {
-   bucket = "statebucket-for-s3"
-   lifecycle {
-     prevent_destroy = true
-   }
-    versioning {
-      enabled = true
-    }
- } 
+# resource "aws_s3_bucket" "terraform_state" {
+#    bucket = "statebucket-for-s3"
+#    lifecycle {
+#      prevent_destroy = true
+#    }
+#  } 
 
-terraform {
-  backend "s3" {
-    bucket = "statebucket-for-infra"
-    key    = "statebucket-for-infra/terraform.tfstate"
-    region = "eu-central-1"
-  }
-}
+# terraform {
+#   backend "s3" {
+#     bucket = "statebucket-for-infra"
+#     key    = "statebucket-for-infra/terraform.tfstate"
+#     region = "eu-central-1"
+#   }
+# }
 
 #==== provider ======================
 
@@ -313,14 +310,14 @@ resource "aws_security_group" "sg_main" {
     protocol          = "icmp"
     description       = "Allow ping"
   }
-  # ingress {
-  #   #cidr_blocks = ["0.0.0.0/0"] # TEMPORARY! TODO 
-  #   #cidr_blocks = [aws_vpc.vpc_main.cidr_block]
-  #   cidr_blocks = ["${aws_instance.lbhttp3.private_ip}/32"]
-  #   from_port   = 80
-  #   protocol    = "tcp"
-  #   to_port     = 80
-  # }
+  ingress {
+    #cidr_blocks = ["0.0.0.0/0"] # TEMPORARY! TODO 
+    cidr_blocks = [aws_vpc.vpc_main.cidr_block]
+    # cidr_blocks = ["${aws_instance.lbhttp3.private_ip}/32"]
+    from_port   = 80
+    protocol    = "tcp"
+    to_port     = 80
+  }
   # ingress {
   #   #cidr_blocks = ["0.0.0.0/0"]
   #   #cidr_blocks = [aws_vpc.vpc_main.cidr_block]
@@ -612,28 +609,28 @@ resource "aws_lb_target_group" "loadbalancer_tg" {
   }
 }
 
-# resource "aws_lb_listener" "lb-listener-80" {
-#   load_balancer_arn = aws_lb.loadbalancer.arn
-#   port              = "80"
-#   protocol          = "HTTP"
-#   default_action {
-#     type             = "forward"
-#     target_group_arn = aws_lb_target_group.loadbalancer_tg.arn
-#   }
-# }
+resource "aws_lb_listener" "lb-listener-80" {
+  load_balancer_arn = aws_lb.loadbalancer.arn
+  port              = "80"
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.loadbalancer_tg.arn
+  }
+}
 
-# resource "aws_lb_listener" "lb-listener-443" {
-#   load_balancer_arn = aws_lb.loadbalancer.arn
-#   port              = "443"
-#   protocol          = "HTTPS"
-#   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-#   certificate_arn   = "${aws_acm_certificate.cert.arn}"
+resource "aws_lb_listener" "lb-listener-443" {
+  load_balancer_arn = aws_lb.loadbalancer.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = "${aws_acm_certificate.cert.arn}"
 
-#   default_action {
-#     target_group_arn = aws_lb_target_group.loadbalancer_tg.arn
-#     type             = "forward"
-#   }
-# }
+  default_action {
+    target_group_arn = aws_lb_target_group.loadbalancer_tg.arn
+    type             = "forward"
+  }
+}
 
 
 # resource "random_string" "randomizer" {
@@ -644,58 +641,58 @@ resource "aws_lb_target_group" "loadbalancer_tg" {
 # ++++++++++++++++++++++++++++++++++++ CERTIFICATE SELFSIGNED +++++++++++++++++++++++++++++++++++++++++
 #          надо бы переделать под домен на letsencrypt TODO
 
-# resource "tls_private_key" "key" {
-#   algorithm = "RSA"
-# }
+resource "tls_private_key" "key" {
+  algorithm = "RSA"
+}
 
-# resource "tls_self_signed_cert" "cert" {
-#   # key_algorithm         = "RSA"
-#   private_key_pem       = "${tls_private_key.key.private_key_pem}"
-#   validity_period_hours = 87600
+resource "tls_self_signed_cert" "cert" {
+  # key_algorithm         = "RSA"
+  private_key_pem       = "${tls_private_key.key.private_key_pem}"
+  validity_period_hours = 87600
 
-#   allowed_uses = [
-#     "key_encipherment",
-#     "digital_signature",
-#     "server_auth",
-#   ]
+  allowed_uses = [
+    "key_encipherment",
+    "digital_signature",
+    "server_auth",
+  ]
 
-#   dns_names = ["*.${var.region}.elb.amazonaws.com"]
+  dns_names = ["*.${var.region}.elb.amazonaws.com"]
 
-#   subject {
-#     common_name  = "*.${var.region}.elb.amazonaws.com"
-#     organization = "ORGANIZATION"
-#     province     = "STATE"
-#     country      = "COUNT"
-#   }
-# }
+  subject {
+    common_name  = "*.${var.region}.elb.amazonaws.com"
+    organization = "ORGANIZATION"
+    province     = "STATE"
+    country      = "COUNT"
+  }
+}
 
-# resource "tls_self_signed_cert" "public_cert" {
-#   # key_algorithm         = "RSA"
-#   private_key_pem       = "${tls_private_key.key.private_key_pem}"
-#   validity_period_hours = 87600
+resource "tls_self_signed_cert" "public_cert" {
+  # key_algorithm         = "RSA"
+  private_key_pem       = "${tls_private_key.key.private_key_pem}"
+  validity_period_hours = 87600
 
-#   allowed_uses = [
-#     "key_encipherment",
-#     "digital_signature",
-#     "server_auth",
-#   ]
+  allowed_uses = [
+    "key_encipherment",
+    "digital_signature",
+    "server_auth",
+  ]
 
-#   dns_names = ["*.${var.region}.elb.amazonaws.com"]
+  dns_names = ["*.${var.region}.elb.amazonaws.com"]
 
-#   subject {
-#     common_name  = "*.${var.region}.elb.amazonaws.com"
-#     organization = "ORGANIZATION"
-#     province     = "STATE"
-#     country      = "COUNT"
-#   }
-# }
+  subject {
+    common_name  = "*.${var.region}.elb.amazonaws.com"
+    organization = "ORGANIZATION"
+    province     = "STATE"
+    country      = "COUNT"
+  }
+}
 
-# resource "aws_acm_certificate" "cert" {
-#   private_key      = "${tls_private_key.key.private_key_pem}"
-#   certificate_body = "${tls_self_signed_cert.public_cert.cert_pem}"
-# }
+resource "aws_acm_certificate" "cert" {
+  private_key      = "${tls_private_key.key.private_key_pem}"
+  certificate_body = "${tls_self_signed_cert.public_cert.cert_pem}"
+}
 
-#  =========================== S53
+#=========================== S53
 
 resource "aws_route53_zone" "domain" {
   name = "${var.domain}."
@@ -888,15 +885,24 @@ resource "aws_instance" "lbhttp3" {
         private_key = tls_private_key.example.private_key_pem
       }
     }
-    provisioner "local-exec" {
+    provisioner "local-exec" {   #костыльные костыли
     command = <<-EOF
-      echo $(aws autoscaling describe-auto-scaling-instances --region ${var.region} --output text \
+      $(echo "$(aws autoscaling describe-auto-scaling-instances --region ${var.region} --output text \
       --query "AutoScalingInstances[?AutoScalingGroupName=='${aws_autoscaling_group.autoscale_group.name}'].InstanceId" \
       | xargs -n1 aws ec2 describe-instances --instance-ids $ID --region ${var.region} \
-      --query "Reservations[].Instances[].PrivateIpAddress" --output text) > /tmp/deploy/asgprivateiplist
-      for i in
+      --query "Reservations[].Instances[].PrivateIpAddress" --output text)") > asgprivateiplist.txt
     EOF
-  }
+    }
+    provisioner "file" {
+      source      = "asgprivateiplist.txt"
+      destination = "/tmp/deploy/asgprivateiplist"
+      connection {
+        type        = "ssh"
+        host = "${aws_instance.lbhttp3.public_ip}"
+        user = "admin"
+        private_key = tls_private_key.example.private_key_pem
+      }
+    }    
     lifecycle {
     create_before_destroy = false
     }
