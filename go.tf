@@ -177,30 +177,28 @@ data "template_cloudinit_config" "bingo_config" {
 
 #========== S3 ======================================================================================
 
-# resource "aws_s3_bucket" "terraform_state" {
-#    bucket = "statebucket"
-#    lifecycle {
-#      prevent_destroy = true
-#    }
-#     versioning {
-#       enabled = true
-#     }
-#  } 
-
-# terraform {
-#   backend "s3" {
-#     bucket = "statebucket"
-#     key    = "statebucket/terraform.tfstate"
-#     region = "eu-central-1"
-#   }
-# }
-
 resource "aws_s3_bucket" "lblogs" {
   bucket        = "logsfromelb"
   force_destroy = true
 }
 
+resource "aws_s3_bucket" "terraform_state" {
+   bucket = "statebucket-for-s3"
+   lifecycle {
+     prevent_destroy = true
+   }
+    versioning {
+      enabled = true
+    }
+ } 
 
+terraform {
+  backend "s3" {
+    bucket = "statebucket-for-infra"
+    key    = "statebucket-for-infra/terraform.tfstate"
+    region = "eu-central-1"
+  }
+}
 
 #==== provider ======================
 
@@ -604,12 +602,12 @@ resource "aws_lb_target_group" "loadbalancer_tg" {
   target_type = "instance"
   vpc_id      = aws_vpc.vpc_main.id
   health_check {
-    path                = "/pinglb"
+    path                = "/"
     port                = "80"
     healthy_threshold   = 2
     unhealthy_threshold = 10
     timeout             = 2
-    interval            = 5
+    interval            = 3
     matcher             = "200"
   }
 }

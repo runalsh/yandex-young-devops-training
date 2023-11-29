@@ -1,0 +1,117 @@
+
+name: auto provision
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '*.md'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '*.md'
+      - '.github/workflows/**'
+
+jobs:
+    deploys3:
+      name: deploying S3 buckets
+      runs-on: ubuntu-latest
+      defaults:
+        run:
+          working-directory: s3
+      env:
+        ACTION: Init S3 buckets
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+        AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+   
+      steps:
+        - name: Checkout 
+          uses: actions/checkout@v2
+  
+        - name: Setup Terraform
+          uses: hashicorp/setup-terraform@v1
+  
+        - name: Terraform format
+          run: terraform fmt -check
+          continue-on-error: true
+  
+        - name: Terraform init
+          run: terraform init
+        
+        - name: Terraform validate
+          run: terraform validate
+  
+        - name: Terraform plan
+          id: plan
+          run: terraform plan
+  
+        - name: Terraform Apply
+          run: terraform apply -auto-approve
+          
+        - name: send message to tg on fail
+          if:  ${{ failure() }}
+          uses: appleboy/telegram-action@master
+          with:
+            to: ${{ secrets.TELEGRAM_TO }}
+            token: ${{ secrets.TELEGRAM_TOKEN }}
+            message: |
+              ${{ github.actor }} created commit:
+              *Commit message:* ${{ github.event.commits[0].message }}
+              *Repository commit:*  https://github.com/${{ github.repository }}/commit/${{github.sha}}
+              *Result:* ${{ github.job }} job in worflow ${{ github.workflow }} of ${{ github.repository }} has ${{ job.status }}
+              *Action:* ${{ env.ACTION }}
+              *Status:* ${{ job.status }}
+            format: "markdown"
+            disable_web_page_preview: true
+          
+
+    deployecr:
+      name: deploying infra with terraform
+      runs-on: ubuntu-latest
+      needs: deploys3
+      env:
+        ACTION: creds with Terraform
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+        AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+   
+      steps:
+        - name: Checkout 
+          uses: actions/checkout@v2
+  
+        - name: Setup Terraform
+          uses: hashicorp/setup-terraform@v1
+  
+        - name: Terraform format
+          run: terraform fmt -check
+          continue-on-error: true
+  
+        - name: Terraform init
+          run: terraform init
+        
+        - name: Terraform validate
+          run: terraform validate
+  
+        - name: Terraform plan
+          id: plan
+          run: terraform plan
+  
+        - name: Terraform Apply
+          run: terraform apply -auto-approve
+          
+        - name: send message to tg on fail
+          if:  ${{ failure() }}
+          uses: appleboy/telegram-action@master
+          with:
+            to: ${{ secrets.TELEGRAM_TO }}
+            token: ${{ secrets.TELEGRAM_TOKEN }}
+            message: |
+              ${{ github.actor }} created commit:
+              *Commit message:* ${{ github.event.commits[0].message }}
+              *Repository commit:*  https://github.com/${{ github.repository }}/commit/${{github.sha}}
+              *Result:* ${{ github.job }} job in worflow ${{ github.workflow }} of ${{ github.repository }} has ${{ job.status }}
+              *Action:* ${{ env.ACTION }}
+              *Status:* ${{ job.status }}
+            format: "markdown"
+            disable_web_page_preview: true

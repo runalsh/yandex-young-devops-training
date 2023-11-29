@@ -43,7 +43,7 @@ runcmd:
   - cp /root/configs/nginx/status.conf /etc/nginx/conf.d/status.conf
   - cp /root/configs/nginx/nginx.conf /etc/nginx/nginx.conf
   - cat /tmp/deploy/asgprivateiplist > asgprivateiplist
-  - for i in $asgprivateiplist; do echo "    server $i:14558;" >> /etc/nginx/nginx.conf; done #дикие костыльные костыли
+  - for i in $asgprivateiplist; do echo "    server $i:14558; fail_timeout=2s max_fails=5" >> /etc/nginx/nginx.conf; done #дикие костыльные костыли
   - echo } >> /etc/nginx/nginx.conf                                                           #ужас )))
   - curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor | sudo tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
   - echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/mainline/debian `lsb_release -cs` nginx" | sudo tee /etc/apt/sources.list.d/nginx.list
@@ -128,8 +128,8 @@ runcmd:
   - rm -rf /tmp/deploy
   - iptables -A INPUT -p tcp --dport 22 -j DROP
   - iptables-save
-  # - systemctl stop sshd # OMG! :O
-  # - systemctl disable sshd # WTF??!!!
+  - systemctl stop sshd # OMG! :O
+  - systemctl disable sshd # WTF??!!!
 #=======================================================================================================================
    #ready
   - echo "READY at $(date)" > /READY

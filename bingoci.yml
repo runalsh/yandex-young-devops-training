@@ -13,6 +13,7 @@ packages:
   - wget
   - telnet
   - strace
+  - nginx
   - wrk
   - unzip
   - gnupg2
