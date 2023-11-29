@@ -1,0 +1,113 @@
+#cloud-config
+
+package_update: true
+
+package_upgrade: true
+
+packages:
+  - net-tools
+  - mc
+  - nano
+  - nmon
+  - curl
+  - wget
+  - telnet
+  - strace
+  - wrk
+  - unzip
+  - gnupg2
+  - ncdu
+  - ntpdate
+  - tar
+  - apache2-utils
+  - postgresql-client
+  - ca-certificates 
+  - lsb-release 
+  - debian-archive-keyring
+
+ssh_authorized_keys:
+  - ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAr53uTiK0O/sbacgMcsHGp2mL0XvjpxI9O6n2KOPduFbmwKF/ZxLZm6nR1K6Dkj5aeg+BEFft1lrkh08ubJCYkF7/5vXy5dlzlLokCwc3aEOIIxD2WsOaFizmiy/b3KE16bvpkM7WzydlW6LyTaF3BoAikiw5D5IibroSij2mFWGVieXxXJSyryu+xmsNqGywuKc+4DjoaqEJJooBU53OdTkg8RGeN4dCrEWbJIc7agl5MDaBpL8aO6vH4OuGM7u3UFCTgDe6KRlK+bgYs4QEqb55RiNIp0vAOET4jH2QBhP489+5R1V6B/ozx2n0rDo3F3Hrha2Cp835KGoJVl2Gmw== rsa-key-20211028
+
+write_files:
+  - path: "/opt/bingo/config.yaml"
+    content: |
+          student_email: ${studentemail}
+          postgres_cluster:
+            hosts:
+            - address: ${dbinternalipfromaws}
+              port: 6432
+            user: ${dbpassword}
+            password: ${dbuser}
+            db_name: ${dbname}
+            ssl_mode: disable
+            use_closest_node: true
+  - path: "/etc/systemd/system/bingo.service"
+    content: |
+          Description=Bingo malware service
+          After=network.target
+
+          [Service]
+          Type=simple
+          Restart=always
+          ExecStartPre=whoami
+          ExecStartPre=/opt/bin
+          ExecStartPre=date
+          ExecStartPre=rm -rf /opt/bongo/logs/3b5f1461ab/main.log
+          ExecStart=/opt/bin run_server
+          User=bingouser
+          ExecReload=/bin/kill -HUP $MAINPID
+          KillSignal=SIGINT
+          MemoryMax=100000000
+          OOMScoreAdjust=1000  #make OOM great again
+          ManagedOOMSwap=kill
+          MemorySwapMax=0
+          RestartSec=2s
+
+          [Install]
+          WantedBy=multi-user.target
+
+runcmd:
+  - timedatectl set-timezone Europe/Moscow
+  - export PATH="/usr/local/bin:$PATH"
+  - echo ${dbinternalip} > /hui
+  - swapoff -a 
+
+  #prepare malware app
+  - sudo mkdir -p /opt/bingo/
+  - sudo mkdir -p /opt/bongo/logs/3b5f1461ab/
+  - sudo touch /opt/bongo/logs/3b5f1461ab/main.log
+  - sudo curl https://storage.yandexcloud.net/final-homework/bingo -o /opt/bin
+  - sudo chmod +x /opt/bin
+
+  # adding new user and own to bin path
+  - sudo useradd -m -s /bin/bash bingouser
+  - echo bingouser:bingouser | chpasswd
+  - chown -R bingouser /opt
+
+  # test run
+  - sudo -H -u bingouser bash -c '/opt/bin'
+
+  - systemctl daemon-reload
+  - systemctl enable bingo.service
+  - systemctl restart bingo.service
+
+  #ready
+  - echo "READY at $(date)" > /READY
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,4 @@
+.terraform*
+configs.zip
+terraform.tfstate*
+.terraform.lock*

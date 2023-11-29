@@ -1,0 +1,138 @@
+#cloud-config
+
+package_update: true
+
+package_upgrade: true
+
+packages:
+  - nginx
+  - net-tools
+  - mc
+  - nano
+  - nmon
+  - sudo
+  - curl
+  - wget
+  - unzip
+  - telnet
+  - strace
+  - wrk
+  - gnupg2
+  - ncdu
+  - tar
+  - apache2-utils
+  - pgbouncer
+  - ca-certificates
+  - lsb-release
+  - debian-archive-keyring
+
+ssh_authorized_keys:
+  - ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAr53uTiK0O/sbacgMcsHGp2mL0XvjpxI9O6n2KOPduFbmwKF/ZxLZm6nR1K6Dkj5aeg+BEFft1lrkh08ubJCYkF7/5vXy5dlzlLokCwc3aEOIIxD2WsOaFizmiy/b3KE16bvpkM7WzydlW6LyTaF3BoAikiw5D5IibroSij2mFWGVieXxXJSyryu+xmsNqGywuKc+4DjoaqEJJooBU53OdTkg8RGeN4dCrEWbJIc7agl5MDaBpL8aO6vH4OuGM7u3UFCTgDe6KRlK+bgYs4QEqb55RiNIp0vAOET4jH2QBhP489+5R1V6B/ozx2n0rDo3F3Hrha2Cp835KGoJVl2Gmw== rsa-key-20211028
+
+write_files:
+  - path: "/opt/bingo/config.yaml"
+    owner: "admin:admin"
+    permissions: "0644"
+    content: |
+      student_email: ${studentemail}
+      postgres_cluster:
+        hosts:
+        - address: 127.0.0.1
+          port: 6432
+        user: ${dbuser}
+        password: ${dbpassword}
+        db_name: ${dbname}
+        ssl_mode: disable
+        use_closest_node: true
+
+runcmd:
+  - timedatectl set-timezone Europe/Moscow
+  - export PATH="/usr/local/bin:$PATH"
+
+  # prepare pgbouncer
+  - apt -y install pgbouncer
+  - sed -i '/;* = host=testserver/a * = host=localhost port=5432/' /etc/pgbouncer/pgbouncer.ini
+  - sed -i 's/^;max_client_conn = 100/max_client_conn = 1000/' /etc/pgbouncer/pgbouncer.ini
+  - sed -i 's/^listen_addr = localhost/listen_addr = */' /etc/pgbouncer/pgbouncer.ini
+  - echo "\"${dbuser}\" \"${dbpassword}\"" >> /etc/pgbouncer/userlist.txt
+  - service pgbouncer restart
+
+  # pgbench test
+  # - sudo -u postgres psql -c "alter user ${dbuser} createdb;"
+  # - sudo -u postgres psql -c "drop DATABASE pgbenchtest;"
+  # - sudo -u postgres psql -c "CREATE DATABASE pgbenchtest OWNER ${dbuser};"
+  # - pgbench -i -p 5432 -U ${dbuser} -h localhost pgbenchtest
+  # - pgbench -p 5432 -c 200 -j 1 -T 10 -U postgres -h localhost pgbenchtest
+  # - pgbench -p 6432 -c 200 -j 1 -T 10 -U postgres -h localhost pgbenchtest
+
+  # postgres install
+  - sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+  - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+  - apt -y update && apt install postgresql-16 -y
+
+  # prepare postgres
+  - sudo sh -c 'echo "host all all ${vpccidrblock} md5" >> /etc/postgresql/16/main/pg_hba.conf'
+  # - sudo sh -c 'echo "host all all 0.0.0.0/0 md5" >> /etc/postgresql/16/main/pg_hba.conf' # remove
+  - echo "listen_addresses = '*'" >> /etc/postgresql/16/main/postgresql.conf
+  - sed -i 's/^max_connections = 100/max_connections = 5000/' /etc/postgresql/16/main/postgresql.conf
+  - sed -i 's/^shared_buffers = 128MB/shared_buffers = 512MB/' /etc/postgresql/16/main/postgresql.conf
+  - service postgresql restart
+  - service postgresql status
+  - sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"
+  - sudo -u postgres psql -c "create user ${dbuser};"
+  - sudo -u postgres psql -c "ALTER USER ${dbuser} WITH PASSWORD '${dbpassword}';"
+  - sudo -u postgres psql -c "CREATE DATABASE ${dbname} OWNER ${dbuser};"
+
+  #prepare malware app
+  - mkdir -p /opt/bingo/
+  - mkdir -p /opt/bongo/logs/3b5f1461ab/
+  - touch /opt/bongo/logs/3b5f1461ab/main.log
+  - curl https://storage.yandexcloud.net/final-homework/bingo -o /opt/bin
+  - chmod +x /opt/bin
+
+  # adding new user and own to bingo path
+  - useradd -m -s /bin/bash bingouser
+  - echo bingouser:bingouser | chpasswd
+  - chown -R bingouser /opt
+
+  # prepare db localy
+  - sudo -H -u bingouser bash -c '/opt/bin prepare_db'
+
+  # run this hard software for hello woprld
+  - sudo -H -u bingouser bash -c '/opt/bin'
+
+  #create indexes for db
+  #GET /api/movie/{id}
+  - sudo -u ${dbuser} psql -d ${dbname} -c "create index idx_movies_id on movies(id);"
+  #GET /api/customer/{id}
+  - sudo -u ${dbuser} psql -d ${dbname} -c "create index idx_cus_id on customers(id);"
+  #GET /api/session/{id}
+  - sudo -u ${dbuser} psql -d ${dbname} -c "create index grsagnf on sessions(id);"
+  - sudo -u ${dbuser} psql -d ${dbname} -c "create index grsagnfdd on sessions(id desc);"
+  - sudo -u ${dbuser} psql -d ${dbname} -c "create index idxvbdhdj on movies(year asc, name asc);"
+  #GET /api/movie  - 85
+  - sudo -u ${dbuser} psql -d ${dbname} -c "create index idx_year_name_id on movies(year desc, name asc, id desc);"
+  - sudo -u ${dbuser} psql -d ${dbname} -c "create index idx_year_name_idd on movies(year);"
+  #GET /api/customer  - 313
+  - sudo -u ${dbuser} psql -d ${dbname} -c "create index idx_all on customers (surname asc, name asc, birthday desc, id desc);"
+  #GET /api/session 1700
+  - sudo -u ${dbuser} psql -d ${dbname} -c "create index idxwtf on movies (year desc, name asc);"
+  - sudo -u ${dbuser} psql -d ${dbname} -c "create index hbfrjkbjj on sessions(customer_id);"
+  - sudo -u ${dbuser} psql -d ${dbname} -c "create index hbfrjfkbjj on sessions(movie_id);"
+  - sudo -u ${dbuser} psql -d ${dbname} -c "create index hbfrjkggbjj on sessions(id desc);"
+  #POST /api/session 19
+  #DELETE /api/session/{id}
+
+  #make postgresql warmer
+  - for ((i=1; i<4; i++)) ; do
+      sudo -u ${dbuser} psql -d ${dbname} -c "SELECT movies.id, movies.name, movies.year, movies.duration FROM movies WHERE movies.id IN (1) ORDER BY movies.year DESC, movies.name ASC, movies.id DESC LIMIT 100000;" /
+      sudo -u ${dbuser} psql -d ${dbname} -c "SELECT customers.id, customers.name, customers.surname, customers.birthday, customers.email FROM customers WHERE customers.id IN (1) ORDER BY customers.surname ASC, customers.name ASC, customers.birthday DESC, customers.id DESC LIMIT 100000;" /
+      sudo -u ${dbuser} psql -d ${dbname} -c "SELECT sessions.id, sessions.start_time, customers.id, customers.name, customers.surname, customers.birthday, customers.email, movies.id, movies.name, movies.year, movies.duration FROM sessions INNER JOIN customers ON sessions.customer_id = customers.id INNER JOIN movies ON sessions.movie_id = movies.id WHERE sessions.id IN (1) ORDER BY movies.year DESC, movies.name ASC, customers.id, sessions.id DESC LIMIT 100000;" /
+      sudo -u ${dbuser} psql -d ${dbname} -c "SELECT movies.id, movies.name, movies.year, movies.duration FROM movies ORDER BY movies.year DESC, movies.name ASC, movies.id DESC LIMIT 100000;" /
+      sudo -u ${dbuser} psql -d ${dbname} -c "SELECT customers.id, customers.name, customers.surname, customers.birthday, customers.email FROM customers ORDER BY customers.surname ASC, customers.name ASC, customers.birthday DESC, customers.id DESC LIMIT 100000;" /
+      sudo -u ${dbuser} psql -d ${dbname} -c "SELECT sessions.id, sessions.start_time, customers.id, customers.name, customers.surname, customers.birthday, customers.email, movies.id, movies.name, movies.year, movies.duration FROM sessions INNER JOIN customers ON sessions.customer_id = customers.id INNER JOIN movies ON sessions.movie_id = movies.id ORDER BY movies.year DESC, movies.name ASC, customers.id, sessions.id DESC LIMIT 100000;";
+    done
+
+  #ready
+  - echo "READY at $(date)" > /READY
+

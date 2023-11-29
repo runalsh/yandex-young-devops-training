@@ -1,0 +1,148 @@
+#cloud-config
+
+package_update: true
+
+package_upgrade: true
+
+packages:
+  - net-tools
+  - mc
+  - nano
+  - nmon
+  - curl
+  - wget
+  - telnet
+  - strace
+  - unzip
+  - wrk
+  - gnupg2
+  - ncdu
+  - apache2-utils
+  - postgresql-client
+  - gnupg2 
+  - ca-certificates 
+  - lsb-release 
+  - debian-archive-keyring
+
+ssh_authorized_keys:
+  - ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAr53uTiK0O/sbacgMcsHGp2mL0XvjpxI9O6n2KOPduFbmwKF/ZxLZm6nR1K6Dkj5aeg+BEFft1lrkh08ubJCYkF7/5vXy5dlzlLokCwc3aEOIIxD2WsOaFizmiy/b3KE16bvpkM7WzydlW6LyTaF3BoAikiw5D5IibroSij2mFWGVieXxXJSyryu+xmsNqGywuKc+4DjoaqEJJooBU53OdTkg8RGeN4dCrEWbJIc7agl5MDaBpL8aO6vH4OuGM7u3UFCTgDe6KRlK+bgYs4QEqb55RiNIp0vAOET4jH2QBhP489+5R1V6B/ozx2n0rDo3F3Hrha2Cp835KGoJVl2Gmw== rsa-key-20211028
+
+runcmd:
+  - timedatectl set-timezone Europe/Moscow
+  - export PATH="/usr/local/bin:$PATH"
+  - mkdir /tmp/deploy
+  - unzip /tmp/configs.zip -d /root/configs
+  # - export http3loadbalanceradresslocal=${http3loadbalanceradress} 
+  # - envsubst ${http3loadbalanceradresslocal} < /etc/nginx/nginx.conf > /etc/nginx/nginx.conf
+
+  #install nginx latest and enable quic
+  - cd /tmp/deploy
+  - openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/nginx.key -out /etc/ssl/certs/nginx.crt -subj "/C=US/ST=New Sweden/L=Stockholm/O=.../OU=.../CN=.../emailAddress=default"
+  - cp /root/configs/nginx/99nginx /etc/apt/preferences.d/99nginx
+  - cp /root/configs/nginx/default.new /etc/nginx/conf.d/default.new
+  - cp /root/configs/nginx/status.conf /etc/nginx/conf.d/status.conf
+  - cp /root/configs/nginx/nginx.conf /etc/nginx/nginx.conf
+  - cat /tmp/deploy/asgprivateiplist > asgprivateiplist
+  - for i in $asgprivateiplist; do echo "    server $i:14558;" >> /etc/nginx/nginx.conf; done #дикие костыльные костыли
+  - echo } >> /etc/nginx/nginx.conf                                                           #ужас )))
+  - curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor | sudo tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
+  - echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/mainline/debian `lsb_release -cs` nginx" | sudo tee /etc/apt/sources.list.d/nginx.list
+  - apt update
+  - apt install -y nginx
+  - service nginx stop
+  - mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.orig
+  - mv /etc/nginx/conf.d/default.new /etc/nginx/conf.d/default.conf
+  - service nginx restart
+
+#=======================================================================================================================
+  - cd /tmp/deploy
+  - wget https://github.com/prometheus/prometheus/releases/download/v2.48.0/prometheus-2.48.0.linux-amd64.tar.gz
+  - tar zxvf prometheus-2.48.0.linux-amd64.tar.gz
+  - cd prometheus-2.48.0.linux-amd64
+  - mkdir -p /etc/prometheus
+  - mkdir -p /var/lib/prometheus
+  - mkdir -p /data
+  - cp prometheus promtool /usr/local/bin/
+  - cp -r console_libraries consoles /etc/prometheus
+  - useradd --no-create-home --shell /bin/false prometheus
+  - cp /root/configs/monitoring/prometheus /etc/systemd/system/prometheus
+  - cp /root/configs/monitoring/prometheus.yml /etc/prometheus/prometheus.yml
+  - chown -R prometheus:prometheus /etc/prometheus /var/lib/prometheus /data
+  - chown -R prometheus:prometheus /usr/local/bin/{prometheus,promtool}
+  - systemctl daemon-reload
+  - systemctl enable prometheus
+  - systemctl restart prometheus
+  - systemctl status prometheus
+#=======================================================================================================================
+  - cd /tmp/deploy
+  - wget https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz
+  - tar zxvf node_exporter-1.7.0.linux-amd64.tar.gz
+  - cd node_exporter-1.7.0.linux-amd64
+  - mkdir /opt/node-exporter/
+  - cp node_exporter /opt/node-exporter/
+  - chown -R prometheus:prometheus /opt/node-exporter/
+  - cp /root/configs/monitoring/node-exporter /etc/systemd/system/node-exporter
+  - systemctl daemon-reload
+  - systemctl enable node-exporter
+  - systemctl restart node-exporter
+  - systemctl status node-exporter
+#=======================================================================================================================
+  - cd /tmp/deploy
+  - wget https://github.com/nginxinc/nginx-prometheus-exporter/releases/download/v0.11.0/nginx-prometheus-exporter_0.11.0_linux_amd64.tar.gz
+  - tar -zxf nginx-prometheus-exporter_0.11.0_linux_amd64.tar.gz
+  - mkdir /opt/nginx-exporter/
+  - cp nginx-prometheus-exporter /opt/nginx-exporter/
+  - chown -R prometheus:prometheus /opt/nginx-exporter/
+  - cp /root/configs/monitoring/nginx-exporter /etc/systemd/system/nginx-exporter
+  - systemctl daemon-reload
+  - systemctl enable nginx-exporter
+  - systemctl restart nginx-exporter
+  - systemctl status nginx-exporter
+#=======================================================================================================================
+  - cd /tmp/deploy
+  - apt install -y build-essential ruby-dev
+  - gem install fluentd --no-doc
+  - gem install fluent-plugin-prometheus
+  - mkdir /etc/fluent/
+  - cp /root/configs/monitoring/fluent.conf /etc/fluent/fluent.conf
+  - chown -R prometheus:prometheus /etc/fluent/
+  - cp /root/configs/monitoring/fluentd /etc/systemd/system/fluentd
+  - systemctl daemon-reload
+  - systemctl enable fluentd
+  - systemctl restart fluentd
+  - systemctl status fluentd
+#=======================================================================================================================
+  - cd /tmp/deploy
+  - sudo apt-get install -y adduser libfontconfig1 musl
+  - wget https://dl.grafana.com/oss/release/grafana_10.2.2_amd64.deb
+  - sudo dpkg -i grafana_10.2.2_amd64.deb
+  - cp /root/configs/monitoring/datasource.yml /etc/grafana/provisioning/datasources/datasource.yml
+  - cp /root/configs/monitoring/trafic-latency.json /etc/grafana/provisioning/dashboards/trafic-latency.json
+  - cp /root/configs/monitoring/monitoring.json /etc/grafana/provisioning/dashboards/monitoring.json
+  - cp /root/configs/monitoring/dashboard.yml /etc/grafana/provisioning/dashboards/dashboard.yml
+  - systemctl daemon-reload
+  - systemctl enable grafana-server
+  - systemctl restart grafana-server
+  - systemctl status grafana-server
+#=======================================================================================================================
+  - rm -rf /tmp/deploy
+  - iptables -A INPUT -p tcp --dport 22 -j DROP
+  - iptables-save
+  # - systemctl stop sshd # OMG! :O
+  # - systemctl disable sshd # WTF??!!!
+#=======================================================================================================================
+   #ready
+  - echo "READY at $(date)" > /READY
+
+
+
+
+
+
+
+
+
+
+
+
+
