@@ -382,7 +382,7 @@ resource "aws_security_group" "lb" {
     description       = "Allow ping"
   }
   ingress {
-    cidr_blocks = ["0.0.0.0/0"] # TEMPORARY! TODO 
+    cidr_blocks = ["0.0.0.0/0"] 
     from_port   = 22
     protocol    = "tcp"
     to_port     = 22
@@ -404,6 +404,12 @@ resource "aws_security_group" "lb" {
     from_port   = 443
     protocol    = "udp"
     to_port     = 443
+  }
+    ingress {
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 3000
+    protocol    = "tcp"
+    to_port     = 3000
   }
 }
 
@@ -608,28 +614,28 @@ resource "aws_lb_target_group" "loadbalancer_tg" {
   }
 }
 
-resource "aws_lb_listener" "lb-listener-80" {
-  load_balancer_arn = aws_lb.loadbalancer.arn
-  port              = "80"
-  protocol          = "HTTP"
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.loadbalancer_tg.arn
-  }
-}
+# resource "aws_lb_listener" "lb-listener-80" {
+#   load_balancer_arn = aws_lb.loadbalancer.arn
+#   port              = "80"
+#   protocol          = "HTTP"
+#   default_action {
+#     type             = "forward"
+#     target_group_arn = aws_lb_target_group.loadbalancer_tg.arn
+#   }
+# }
 
-resource "aws_lb_listener" "lb-listener-443" {
-  load_balancer_arn = aws_lb.loadbalancer.arn
-  port              = "443"
-  protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = "${aws_acm_certificate.cert.arn}"
+# resource "aws_lb_listener" "lb-listener-443" {
+#   load_balancer_arn = aws_lb.loadbalancer.arn
+#   port              = "443"
+#   protocol          = "HTTPS"
+#   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+#   certificate_arn   = "${aws_acm_certificate.cert.arn}"
 
-  default_action {
-    target_group_arn = aws_lb_target_group.loadbalancer_tg.arn
-    type             = "forward"
-  }
-}
+#   default_action {
+#     target_group_arn = aws_lb_target_group.loadbalancer_tg.arn
+#     type             = "forward"
+#   }
+# }
 
 
 # resource "random_string" "randomizer" {
@@ -640,56 +646,56 @@ resource "aws_lb_listener" "lb-listener-443" {
 # ++++++++++++++++++++++++++++++++++++ CERTIFICATE SELFSIGNED +++++++++++++++++++++++++++++++++++++++++
 #          надо бы переделать под домен на letsencrypt TODO
 
-resource "tls_private_key" "key" {
-  algorithm = "RSA"
-}
+# resource "tls_private_key" "key" {
+#   algorithm = "RSA"
+# }
 
-resource "tls_self_signed_cert" "cert" {
-  # key_algorithm         = "RSA"
-  private_key_pem       = "${tls_private_key.key.private_key_pem}"
-  validity_period_hours = 87600
+# resource "tls_self_signed_cert" "cert" {
+#   # key_algorithm         = "RSA"
+#   private_key_pem       = "${tls_private_key.key.private_key_pem}"
+#   validity_period_hours = 87600
 
-  allowed_uses = [
-    "key_encipherment",
-    "digital_signature",
-    "server_auth",
-  ]
+#   allowed_uses = [
+#     "key_encipherment",
+#     "digital_signature",
+#     "server_auth",
+#   ]
 
-  dns_names = ["*.${var.region}.elb.amazonaws.com"]
+#   dns_names = ["*.${var.region}.elb.amazonaws.com"]
 
-  subject {
-    common_name  = "*.${var.region}.elb.amazonaws.com"
-    organization = "ORGANIZATION"
-    province     = "STATE"
-    country      = "COUNT"
-  }
-}
+#   subject {
+#     common_name  = "*.${var.region}.elb.amazonaws.com"
+#     organization = "ORGANIZATION"
+#     province     = "STATE"
+#     country      = "COUNT"
+#   }
+# }
 
-resource "tls_self_signed_cert" "public_cert" {
-  # key_algorithm         = "RSA"
-  private_key_pem       = "${tls_private_key.key.private_key_pem}"
-  validity_period_hours = 87600
+# resource "tls_self_signed_cert" "public_cert" {
+#   # key_algorithm         = "RSA"
+#   private_key_pem       = "${tls_private_key.key.private_key_pem}"
+#   validity_period_hours = 87600
 
-  allowed_uses = [
-    "key_encipherment",
-    "digital_signature",
-    "server_auth",
-  ]
+#   allowed_uses = [
+#     "key_encipherment",
+#     "digital_signature",
+#     "server_auth",
+#   ]
 
-  dns_names = ["*.${var.region}.elb.amazonaws.com"]
+#   dns_names = ["*.${var.region}.elb.amazonaws.com"]
 
-  subject {
-    common_name  = "*.${var.region}.elb.amazonaws.com"
-    organization = "ORGANIZATION"
-    province     = "STATE"
-    country      = "COUNT"
-  }
-}
+#   subject {
+#     common_name  = "*.${var.region}.elb.amazonaws.com"
+#     organization = "ORGANIZATION"
+#     province     = "STATE"
+#     country      = "COUNT"
+#   }
+# }
 
-resource "aws_acm_certificate" "cert" {
-  private_key      = "${tls_private_key.key.private_key_pem}"
-  certificate_body = "${tls_self_signed_cert.public_cert.cert_pem}"
-}
+# resource "aws_acm_certificate" "cert" {
+#   private_key      = "${tls_private_key.key.private_key_pem}"
+#   certificate_body = "${tls_self_signed_cert.public_cert.cert_pem}"
+# }
 
 #  =========================== S53
 
@@ -747,13 +753,13 @@ resource "aws_route53_record" "load_balancer_record" {
   }
 }
 
-# resource "aws_route53_record" "load_balancer_http3_record" {
-#   name    = "http3lb.${var.domain}"
-#   type    = "A"
-#   ttl     = "60"
-#   zone_id = aws_route53_zone.domain.zone_id
-#   records = [aws_instance.lbhttp3.public_ip]
-# }
+resource "aws_route53_record" "load_balancer_http3_record" {
+  name    = "http3lb.${var.domain}"
+  type    = "A"
+  ttl     = "60"
+  zone_id = aws_route53_zone.domain.zone_id
+  records = [aws_instance.lbhttp3.public_ip]
+}
 
 #======================================================================================================
 #============= didnt work because AWS wanna extra validation for domains via support :C
