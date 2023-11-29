@@ -11,7 +11,7 @@ on:
     paths-ignore:
       - '*.md'
       - '.github/workflows/**'
-
+ 
 jobs:
     deploys3:
       name: deploying S3 buckets
