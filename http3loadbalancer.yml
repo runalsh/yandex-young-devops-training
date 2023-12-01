@@ -44,7 +44,7 @@ runcmd:
   - cp /root/configs/nginx/nginx.conf /etc/nginx/nginx.conf
   - cat /tmp/deploy/asgprivateiplist > asgprivateiplist #костыльные костыли
   - for i in $asgprivateiplist; do echo "    server $i:14558; fail_timeout=2s max_fails=5" >> /etc/nginx/nginx.conf; done 
-  - echo } >> /etc/nginx/nginx.conf                       #ужас )))                                    
+  - echo } >> /etc/nginx/nginx.conf                       #ужас какой )))                                    
   - curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor | sudo tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
   - echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/mainline/debian `lsb_release -cs` nginx" | sudo tee /etc/apt/sources.list.d/nginx.list
   - apt update
@@ -74,18 +74,18 @@ runcmd:
   - systemctl restart prometheus
   - systemctl status prometheus
 #=======================================================================================================================
-  - cd /tmp/deploy
-  - wget https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz
-  - tar zxvf node_exporter-1.7.0.linux-amd64.tar.gz
-  - cd node_exporter-1.7.0.linux-amd64
-  - mkdir /opt/node-exporter/
-  - cp node_exporter /opt/node-exporter/
-  - chown -R prometheus:prometheus /opt/node-exporter/
-  - cp /root/configs/monitoring/node-exporter /etc/systemd/system/node-exporter
-  - systemctl daemon-reload
-  - systemctl enable node-exporter
-  - systemctl restart node-exporter
-  - systemctl status node-exporter
+  # - cd /tmp/deploy
+  # - wget https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz
+  # - tar zxvf node_exporter-1.7.0.linux-amd64.tar.gz
+  # - cd node_exporter-1.7.0.linux-amd64
+  # - mkdir /opt/node-exporter/
+  # - cp node_exporter /opt/node-exporter/
+  # - chown -R prometheus:prometheus /opt/node-exporter/
+  # - cp /root/configs/monitoring/node-exporter /etc/systemd/system/node-exporter
+  # - systemctl daemon-reload
+  # - systemctl enable node-exporter
+  # - systemctl restart node-exporter
+  # - systemctl status node-exporter
 #=======================================================================================================================
   - cd /tmp/deploy
   - wget https://github.com/nginxinc/nginx-prometheus-exporter/releases/download/v0.11.0/nginx-prometheus-exporter_0.11.0_linux_amd64.tar.gz
@@ -120,6 +120,8 @@ runcmd:
   - cp /root/configs/monitoring/trafic-latency.json /etc/grafana/provisioning/dashboards/trafic-latency.json
   - cp /root/configs/monitoring/monitoring.json /etc/grafana/provisioning/dashboards/monitoring.json
   - cp /root/configs/monitoring/dashboard.yml /etc/grafana/provisioning/dashboards/dashboard.yml
+  - sed -i '/^;root_url/!b;n;croot_url = %(protocol)s://%(domain)s:%(http_port)s/monitoring' /etc/grafana/grafana.ini
+  - sed -i '/;serve_from_sub_path = true/serve_from_sub_path = true/' /etc/grafana/grafana.ini
   - systemctl daemon-reload
   - systemctl enable grafana-server
   - systemctl restart grafana-server

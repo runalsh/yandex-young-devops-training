@@ -92,6 +92,11 @@ runcmd:
   - systemctl enable bingo.service
   - systemctl restart bingo.service
 
+#   # fluentbit  not completed
+#   curl https://raw.githubusercontent.com/fluent/fluent-bit/master/install.sh | sh
+# /etc/fluent-bit/fluent-bit.conf
+
+
   #ready
   - echo "READY at $(date)" > /READY
 
