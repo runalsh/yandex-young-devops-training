@@ -77,7 +77,7 @@ resource "aws_security_group" "sg_main" {
 
 resource "aws_security_group" "lb" {
   name   = "${var.prefix}-aws-lb-sec-group-main"
-  description = "allowed 22 80 443"
+  description = "allowed 22 80 443 3000"
   vpc_id = aws_vpc.vpc_main.id 
   egress {
     cidr_blocks = ["0.0.0.0/0"]
