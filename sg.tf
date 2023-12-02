@@ -11,6 +11,13 @@ resource "aws_security_group" "sg_main" {
     protocol    = "-1"
     to_port     = 0
   }
+  egress {
+    cidr_blocks = ["217.28.224.0/20"]
+    from_port   = 443
+    protocol    = "tcp"
+    to_port     = 443
+    description       = "Allow bingo app downloading"
+  }
   ingress {
     #cidr_blocks = ["0.0.0.0/0"] # TEMPORARY! TODO 
     cidr_blocks = [aws_vpc.vpc_main.cidr_block]
