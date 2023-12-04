@@ -2,7 +2,7 @@
 
 resource "aws_launch_configuration" "launcher" {
   name_prefix   = "${var.prefix}-launcher-ec2"
-  associate_public_ip_address = false  ### убрать TODO
+  associate_public_ip_address = false
   enable_monitoring           = true
   image_id                    = data.aws_ami.debian.id
   instance_type               = var.app_instance_type
@@ -50,29 +50,3 @@ resource "aws_autoscaling_group" "autoscale_group" {
   #   command = "./getipsfromasg.sh"
   # }
 }
-# data "autoscaling_group" "getprivateips" {
-#   autoscaling_id = "${aws_autoscaling_group.autoscale_group.id}"
-#   get_instance_properties = true
-# }
-
-
-# resource "aws_instance" "bingogoapp" {
-#   count                       = var.app_si_instances
-#   associate_public_ip_address = false  ### убрать TODO
-#   ami                         = data.aws_ami.debian.id
-#   instance_type               = var.app_si_instance_type
-#   iam_instance_profile        = aws_iam_instance_profile.ecs_service_role.arn
-#   key_name                    = "universal"
-#   security_groups             = [aws_security_group.sg_main.id]
-#   private_ip                  = "${var.app_si_ip_internal}${count.index}"
-#   user_data_replace_on_change =  true 
-#   user_data = data.template_cloudinit_config.bingo_config.rendered
-
-#   lifecycle {
-#     create_before_destroy = false
-#   }
-#   tags = {
-#     Name  = "Node-${count.index}"
-#   }
-# }
-

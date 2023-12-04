@@ -12,24 +12,8 @@ variable "studentemail" {
   type    = string
 }
 
-variable "db_instance_type" {
-  type    = string
-}
-
-variable "db_instance_name" {
-   type    = string
-}
-
 variable "lb_instance_type" {
   type    = string
-}
-
-variable "mon_instance_type" {
-  type    = string
-}
-
-variable "database_ip_internal" {
-   type    = string
 }
 
 variable "dbpassword" {
@@ -45,20 +29,9 @@ variable "dbuser" {
 variable "domain" {
   type    = string
 }
-
 variable "app_instance_type" {
   type    = string
 }
-variable "app_si_instance_type" {
-  type    = string
-}
-variable "app_si_instances" {
-  type    = string
-}
-variable "app_si_ip_internal" {
-  type    = string
-}
-
 variable "app_desired_intsances" {
   type    = string
 }
