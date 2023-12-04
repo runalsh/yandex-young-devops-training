@@ -6,9 +6,9 @@ studentemail = "shaidullin2@gmail.com"
 
 #app instance (using autoscaling group)
 app_instance_type = "t2.micro" #"c5a.xlarge"  ## "t2.micro" # https://eu-central-1.console.aws.amazon.com/ec2/home?region=eu-central-1#LaunchInstances:
-app_desired_intsances = 1
-app_minimum_instances = 1
-app_maximum_instances = 1
+app_desired_intsances = 2
+app_minimum_instances = 2
+app_maximum_instances = 2
 
 #app instance (single instances)
 app_si_instance_type = "t2.micro"
