@@ -13,3 +13,7 @@ Presentation - Presentation.pptx
 Made on AWS
 
 If you wanna run locally use all-in-one-update.sh script
+
+Detailed analysis of assignments from the organizers https://habr.com/ru/companies/yandex/articles/789838/
+
+![3rdplace result](3rdplace.png)
