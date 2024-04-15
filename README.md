@@ -10,6 +10,7 @@ Task - task.docx
 
 Presentation - Presentation.pptx
 
+
 Made on AWS
 
 If you wanna run locally use all-in-one-update.sh script
